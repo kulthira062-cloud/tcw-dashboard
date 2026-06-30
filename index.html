@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TCW Dashboard — Paint Machine Tracker</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --navy:#0f1c33;
@@ -254,7 +254,7 @@
         <div class="kpi-icon i3">🎯</div>
         <div class="kpi-value" id="kpiTarget">—</div>
         <div class="kpi-label">กำลังทำเป้า</div>
-        <div class="kpi-sub">Invoice End ≥ วันนี้</div>
+        <div class="kpi-sub">สถานะ "กำลังดำเนินการ"</div>
       </div>
       <div class="kpi-card c4">
         <div class="kpi-icon i4">📦</div>
@@ -291,7 +291,7 @@
       </div>
       <div class="panel">
         <h2>กำลังทำเป้า</h2>
-        <p class="panel-sub">Invoice End ≥ วันนี้</p>
+        <p class="panel-sub">สถานะ "กำลังดำเนินการ"</p>
         <div class="gauge-wrap">
           <canvas id="targetGauge" width="220" height="140"></canvas>
         </div>
@@ -337,17 +337,12 @@ function findColIndex(headerRow, ...keywords){
   return -1;
 }
 
-const TARGET_TAB = "รายละเอียดร้านค้าทำเป้า"; // tab สำหรับสถานะเป้า / Invoice End Date
-
 async function loadAllData(){
   if(!USE_GOOGLE_SHEET){
     return getMockData();
   }
   try{
-    const [rawRows, targetRawRows] = await Promise.all([
-      fetchSheetRaw(MAIN_TAB),
-      fetchSheetRaw(TARGET_TAB)
-    ]);
+    const rawRows = await fetchSheetRaw(MAIN_TAB);
     const headerRow = rawRows[1] || []; // ชื่อคอลัมน์จริงอยู่แถวที่ 2 (index 1)
     const colModelPre = findColIndex(headerRow, "รุ่นเครื่องผสมสี", "รุ่นเครื่อง");
     // กรองแถวที่ไม่มีข้อมูลจริง (แถวว่าง/แถวเกิน) ออก โดยใช้คอลัมน์ "รุ่นเครื่อง" เป็นตัวยืนยันว่าเป็นแถวข้อมูลจริง
@@ -355,26 +350,23 @@ async function loadAllData(){
 
     const colYear   = findColIndex(headerRow, "ปีที่ลง", "ปี");
     const colModel  = findColIndex(headerRow, "รุ่นเครื่องผสมสี", "รุ่นเครื่อง");
-    const colReturn = findColIndex(headerRow, "คืนเครื่อง");
+    const colStatus = findColIndex(headerRow, "สถานะเป้า"); // ค่าได้: จบเป้า/กำลังดำเนินการ/คืนเครื่อง/ไม่ทำเป้า/ยืมเครื่อง
     const colCust   = findColIndex(headerRow, "Customer");
-    const colCustName = findColIndex(headerRow, "NAME");
-
-    console.log("[DEBUG] MAIN_TAB header row:", headerRow);
-    console.log("[DEBUG] colYear idx:", colYear, "colModel idx:", colModel, "colReturn idx:", colReturn, "colCust idx:", colCust);
-    console.log("[DEBUG] sample row[0]:", dataRows[0]);
-    if(colReturn >= 0){
-      console.log("[DEBUG] sample คืนเครื่อง values (first 10 rows):", dataRows.slice(0,10).map(r=>r[colReturn]));
-    }
 
     const total = dataRows.length;
-    let activeCount = 0, returnedCount = 0;
+    let statusDone=0, statusInProgress=0, statusReturned=0, statusFailed=0, statusBorrowed=0;
     const yearCounts = {};
     const modelCounts = {};
     const customerSet = new Set();
 
     dataRows.forEach(row => {
-      const returnVal = colReturn >= 0 ? (row[colReturn] || "").toString().trim() : "";
-      if(returnVal === ""){ activeCount++; } else { returnedCount++; }
+      const status = colStatus >= 0 ? (row[colStatus] || "").toString().trim() : "";
+      const isReturned = status.includes("คืนเครื่อง");
+      if(status.includes("จบเป้า")) statusDone++;
+      else if(status.includes("กำลังดำเนินการ")) statusInProgress++;
+      else if(isReturned) statusReturned++;
+      else if(status.includes("ไม่ทำเป้า")) statusFailed++;
+      else if(status.includes("ยืมเครื่อง")) statusBorrowed++;
 
       const y = colYear >= 0 ? row[colYear] : null;
       if(y !== null && y !== "" && y !== undefined){
@@ -386,7 +378,7 @@ async function loadAllData(){
       if(m){ modelCounts[m] = (modelCounts[m] || 0) + 1; }
 
       const custKey = (colCust >= 0 && row[colCust]) ? row[colCust] : null;
-      if(custKey && returnVal === "") customerSet.add(custKey.toString().trim());
+      if(custKey && !isReturned) customerSet.add(custKey.toString().trim());
     });
 
     const modelColors = ["#3b6fe0","#1aa260","#e8973c","#d23b3b","#8a4fe0","#1fb6c9"];
@@ -399,37 +391,8 @@ async function loadAllData(){
       .filter(y => !isNaN(y.year) && y.year > 1990 && y.year < 2100)
       .sort((a,b)=>a.year-b.year);
 
-    // ----- เป้า / Invoice End Date จาก tab รายละเอียดร้านค้าทำเป้า -----
-    const tHeader = targetRawRows[1] || [];
-    const tData = targetRawRows.slice(2).filter(r => r && r.length);
-    const colTargetStatus = findColIndex(tHeader, "สถานะเป้า");
-    const colInvoiceEnd   = findColIndex(tHeader, "Invoice End Date", "Invoice End");
-    console.log("[DEBUG] TARGET_TAB header row:", tHeader);
-    console.log("[DEBUG] colTargetStatus idx:", colTargetStatus, "colInvoiceEnd idx:", colInvoiceEnd);
-    console.log("[DEBUG] sample target row[0]:", tData[0]);
-
-    const today = new Date();
-    let statusDone=0, statusInProgress=0, statusReturned=0, statusFailed=0, statusBorrowed=0;
-    tData.forEach(row => {
-      const status = colTargetStatus >= 0 ? (row[colTargetStatus] || "").toString().trim() : "";
-      if(status.includes("จบเป้า")) statusDone++;
-      else if(status.includes("กำลังดำเนินการ")) statusInProgress++;
-      else if(status.includes("คืนเครื่อง")) statusReturned++;
-      else if(status.includes("ไม่ทำเป้า")) statusFailed++;
-      else if(status.includes("ยืมเครื่อง")) statusBorrowed++;
-    });
-
-    // นับ "กำลังทำเป้า" จาก Invoice End Date >= วันนี้ (ตามที่วางแผนไว้)
-    let targetActiveCount = 0;
-    tData.forEach(row => {
-      const endRaw = colInvoiceEnd >= 0 ? row[colInvoiceEnd] : null;
-      if(!endRaw) return;
-      let endDate = null;
-      const m = /Date\((\d+),(\d+),(\d+)/.exec(endRaw.toString());
-      if(m) endDate = new Date(Number(m[1]), Number(m[2]), Number(m[3]));
-      else endDate = new Date(endRaw);
-      if(endDate && !isNaN(endDate) && endDate >= today) targetActiveCount++;
-    });
+    const returnedCount = statusReturned;
+    const activeCount = total - returnedCount;
 
     const summary = {
       total,
@@ -437,9 +400,9 @@ async function loadAllData(){
       returned: returnedCount,
       shops: customerSet.size,
       lastUpdate: new Date().toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'}),
-      target: targetActiveCount,
+      target: statusInProgress, // "กำลังทำเป้า" = สถานะ "กำลังดำเนินการ"
       statusDone, statusInProgress, statusReturned, statusFailed, statusBorrowed,
-      targetTotalGauge: statusDone + statusInProgress + statusReturned + statusFailed + statusBorrowed
+      targetTotalGauge: total
     };
 
     return { summary, yearly, models };
@@ -605,10 +568,11 @@ function renderGauge(canvasId, value, max, valueLabel, colorMain, colorSecondary
       'แสดงข้อมูลตัวอย่าง (mock data) — เปลี่ยน USE_GOOGLE_SHEET เป็น true และใส่ Sheet ID ในโค้ดเพื่อดึงข้อมูลจริงจาก Google Sheet';
   } else {
     document.getElementById('sourceNote').textContent =
-      'ข้อมูลทั้งหมดดึงจาก Google Sheet จริงแล้ว (เครื่องทั้งหมด/ใช้งาน/คืนเครื่อง/รุ่น/ปี/ร้านค้า จาก tab จำนวนเครื่องผสมสีทั้งหมด, สถานะเป้า/กำลังทำเป้า จาก tab รายละเอียดร้านค้าทำเป้า)';
+      'ข้อมูลทั้งหมดดึงจาก tab "จำนวนเครื่องผสมสีทั้งหมด" ใน Google Sheet (เครื่องทั้งหมด/รุ่น/ปี/ร้านค้า/สถานะเป้า คำนวณจากคอลัมน์ "สถานะเป้า" ในชีตเดียวกัน)';
   }
 })();
 </script>
 </body>
 </html>
+
 
