@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCW Dashboard — Paint Machine Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0f1c33;
+    --navy-light:#16264a;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --text:#1c2438;
+    --muted:#6b7488;
+    --blue:#3b6fe0;
+    --green:#1aa260;
+    --teal:#1fb6c9;
+    --orange:#e8643c;
+    --purple:#8a4fe0;
+    --red:#d23b3b;
+    --border:#e7eaf2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', 'Sarabun', system-ui, -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  html,body{
+    height:auto;
+    overflow-x:hidden;
+  }
+  .layout{
+    display:flex;
+    align-items:flex-start;
+  }
+  /* SIDEBAR */
+  .sidebar{
+    width:260px;
+    background:var(--navy);
+    color:#cdd5e6;
+    padding:20px 14px;
+    flex-shrink:0;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 8px 24px 8px;
+  }
+  .brand-icon{
+    width:38px;height:38px;
+    background:linear-gradient(135deg,#3b6fe0,#1fb6c9);
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#fff;font-size:14px;
+  }
+  .brand-text strong{display:block;font-size:16px;color:#fff;}
+  .brand-text span{font-size:11px;color:#9aa6c0;}
+  .nav-section{margin-top:18px;}
+  .nav-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#5f6c8a;
+    padding:8px 12px 4px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:14px;
+    cursor:pointer;
+    color:#aab4cc;
+    margin-bottom:2px;
+    transition:background .15s;
+  }
+  .nav-item:hover{background:var(--navy-light);}
+  .nav-item.active{background:var(--navy-light);color:#fff;font-weight:600;}
+  .nav-icon{width:18px;text-align:center;font-size:14px;}
+  .sidebar-footer{
+    margin-top:30px;
+    padding:10px 12px;
+    font-size:11px;
+    color:#5f6c8a;
+    border-top:1px solid #233458;
+  }
+
+  /* MAIN */
+  .main{flex:1;padding:24px 32px;min-width:0;}
+  .topbar{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    margin-bottom:24px;flex-wrap:wrap;gap:12px;
+  }
+  .topbar h1{font-size:22px;margin:0 0 4px;color:var(--navy);}
+  .topbar p{margin:0;color:var(--muted);font-size:13px;}
+  .topbar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .live-badge{
+    display:flex;align-items:center;gap:6px;
+    background:#e9f8ee;color:#1aa260;
+    padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  }
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#1aa260;animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.35;}100%{opacity:1;}}
+  .admin-btn{
+    background:#6c4fe0;color:#fff;border:none;border-radius:8px;
+    padding:8px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;
+  }
+  .user-email{font-size:13px;color:var(--muted);}
+  .logout-btn{
+    border:1px solid var(--border);background:#fff;color:var(--text);
+    padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;
+  }
+
+  /* KPI CARDS */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:18px;
+    margin-bottom:24px;
+  }
+  .kpi-card{
+    background:var(--card);
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 1px 3px rgba(20,30,60,.06);
+    border-top:4px solid var(--blue);
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi-card.c2{border-top-color:var(--green);}
+  .kpi-card.c3{border-top-color:var(--teal);}
+  .kpi-card.c4{border-top-color:var(--orange);}
+  .kpi-card.c5{border-top-color:var(--purple);}
+  .kpi-icon{
+    width:42px;height:42px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;margin-bottom:14px;
+  }
+  .kpi-icon.i1{background:#e8f0fe;}
+  .kpi-icon.i2{background:#e6f8ee;}
+  .kpi-icon.i3{background:#e3fbfc;}
+  .kpi-icon.i4{background:#fde9e3;}
+  .kpi-icon.i5{background:#f1e8fd;}
+  .kpi-value{font-size:30px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .kpi-value.red{color:var(--red);}
+  .kpi-label{font-size:14px;color:var(--text);margin-bottom:2px;}
+  .kpi-sub{font-size:12px;color:var(--muted);}
+  .kpi-sub.link{color:var(--blue);}
+
+  /* PANELS */
+  .panel{
+    background:var(--card);
+    border-radius:12px;
+    padding:22px 24px;
+    box-shadow:0 1px 3px rgba(20,30,60,.06);
+    margin-bottom:20px;
+  }
+  .panel h2{margin:0 0 2px;font-size:17px;color:var(--navy);}
+  .panel .panel-sub{margin:0 0 16px;font-size:13px;color:var(--muted);}
+
+  .row-3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:18px;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;}
+  .bar-row .bar-label{width:90px;flex-shrink:0;color:var(--text);}
+  .bar-track{flex:1;height:18px;background:#f0f2f7;border-radius:5px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:5px;}
+
+  .gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;}
+  .gauge-value{font-size:28px;font-weight:700;color:var(--navy);margin-top:8px;}
+
+  canvas{max-width:100%;}
+
+  .loading-msg{color:var(--muted);font-size:13px;padding:10px 0;}
+
+  @media (max-width:1200px){
+    .kpi-grid{grid-template-columns:repeat(3,1fr);}
+    .row-3{grid-template-columns:1fr;}
+  }
+  @media (max-width:800px){
+    .sidebar{display:none;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">TCW</div>
+      <div class="brand-text">
+        <strong>TCW</strong>
+        <span>Paint Machine Tracker</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-item">🏠 หน้าหลัก</div>
+      <div class="nav-item active">📊 ภาพรวม</div>
+      <div class="nav-item">🏪 สรุปร้านค้า</div>
+      <div class="nav-item">🅰️ สรุปรายรุ่น</div>
+      <div class="nav-item">📋 รายการทั้งหมด</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">วิเคราะห์</div>
+      <div class="nav-item">📈 แยกตามเขต</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Back-office</div>
+      <div class="nav-item">⬆️ อัปเดตข้อมูล</div>
+      <div class="nav-item">👤 จัดการผู้ใช้งาน</div>
+    </div>
+
+    <div class="sidebar-footer" id="sidebarFooter">
+      อัปเดต: —<br>เครื่อง: — · ร้าน: —
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>ภาพรวม</h1>
+        <p>TCW Dashboard — ข้อมูลเครื่องผสมสี TOA Color World</p>
+      </div>
+      <div class="topbar-right">
+        <div class="live-badge"><span class="live-dot"></span> <span id="liveBadgeText">Live Data — กำลังโหลด...</span></div>
+        <button class="admin-btn">🔑 ADMIN</button>
+        <span class="user-email">kulteera@toagroup.com</span>
+        <button class="logout-btn">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card">
+        <div class="kpi-icon i1">🏭</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-label">เครื่องทั้งหมด</div>
+        <div class="kpi-sub">ทุกกรุ่น ทุกเขต</div>
+      </div>
+      <div class="kpi-card c2">
+        <div class="kpi-icon i2">✅</div>
+        <div class="kpi-value" id="kpiActive">—</div>
+        <div class="kpi-label">ยังใช้งาน</div>
+        <div class="kpi-sub" id="kpiActivePct">—</div>
+      </div>
+      <div class="kpi-card c3">
+        <div class="kpi-icon i3">🎯</div>
+        <div class="kpi-value" id="kpiTarget">—</div>
+        <div class="kpi-label">กำลังทำเป้า</div>
+        <div class="kpi-sub">Invoice End ≥ วันนี้</div>
+      </div>
+      <div class="kpi-card c4">
+        <div class="kpi-icon i4">📦</div>
+        <div class="kpi-value red" id="kpiReturned">—</div>
+        <div class="kpi-label">คืนเครื่องแล้ว</div>
+        <div class="kpi-sub" id="kpiReturnedPct">—</div>
+      </div>
+      <div class="kpi-card c5">
+        <div class="kpi-icon i5">🏬</div>
+        <div class="kpi-value" id="kpiShops">—</div>
+        <div class="kpi-label">ร้านค้า</div>
+        <div class="kpi-sub link">unique customers</div>
+      </div>
+    </div>
+
+    <!-- YEARLY CHART -->
+    <div class="panel">
+      <h2>จำนวนเครื่องที่ลงแต่ละปี</h2>
+      <p class="panel-sub" id="yearlySub">กำลังโหลดข้อมูล...</p>
+      <canvas id="yearlyChart" height="90"></canvas>
+    </div>
+
+    <!-- ROW: model bars / target status / target gauge -->
+    <div class="row-3">
+      <div class="panel">
+        <h2>รุ่นเครื่องผสมสี</h2>
+        <p class="panel-sub">จำนวนแต่ละรุ่น</p>
+        <div id="modelBars"></div>
+      </div>
+      <div class="panel">
+        <h2>สถานะเป้า (ร้านค้า)</h2>
+        <p class="panel-sub">จบเป้า / กำลังดำเนินการ / คืนเครื่อง / ไม่ทำเป้า / ยืมเครื่อง</p>
+        <div id="targetStatusBars"></div>
+      </div>
+      <div class="panel">
+        <h2>กำลังทำเป้า</h2>
+        <p class="panel-sub">Invoice End ≥ วันนี้</p>
+        <div class="gauge-wrap">
+          <canvas id="targetGauge" width="220" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <p class="loading-msg" id="sourceNote">แสดงข้อมูลตัวอย่าง (mock data) — พร้อมเชื่อมต่อ Google Sheet ในขั้นถัดไป</p>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   DATA LAYER
+   ตอนนี้ใช้ mock data ก่อน เมื่อพร้อมเชื่อม Google Sheet:
+   1) เปลี่ยน USE_GOOGLE_SHEET เป็น true
+   2) ใส่ SHEET_ID และชื่อแต่ละ tab ให้ตรงกับ Google Sheet จริง
+   3) ฟังก์ชัน fetchSheetTab() จะดึงข้อมูลผ่าน Google Visualization API (gviz)
+      ซึ่งใช้ได้กับชีตที่เปิด "Anyone with the link can view"
+   ========================================================================= */
+
+const USE_GOOGLE_SHEET = true;
+const SHEET_ID = "1IJS6g_P8XmGoWp7hFf_i8SD4FnmYtWjJw3vcwAhdFtw";
+const MAIN_TAB = "จำนวนเครื่องผสมสีทั้งหมด"; // tab หลักที่ใช้คำนวณ KPI ส่วนใหญ่
+
+// ดึงข้อมูลจาก Google Sheet tab หนึ่งแผ่น ผ่าน gviz JSON endpoint
+// หมายเหตุ: ชีตนี้แถวที่ 1 เป็นเลขลำดับ (1,2,3...) ไม่ใช่ชื่อคอลัมน์จริง
+// ชื่อคอลัมน์จริงอยู่แถวที่ 2 ดังนั้นจะดึงข้อมูลแบบ raw แล้ว map เอง โดยอ้างอิงชื่อคอลัมน์จากแถว 2
+async function fetchSheetRaw(tabName){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tabName)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  // rows[] แต่ละแถวคือ array ของค่า ตามลำดับคอลัมน์ A,B,C,...
+  const rows = json.table.rows.map(r => r.c.map(c => (c ? (c.f ?? c.v) : null)));
+  return rows; // rows[0] = แถว1 (เลขลำดับ), rows[1] = แถว2 (ชื่อคอลัมน์จริง), rows[2..] = ข้อมูล
+}
+
+function findColIndex(headerRow, ...keywords){
+  for(let i=0;i<headerRow.length;i++){
+    const cell = (headerRow[i] || "").toString();
+    if(keywords.some(k => cell.includes(k))) return i;
+  }
+  return -1;
+}
+
+const TARGET_TAB = "รายละเอียดร้านค้าทำเป้า"; // tab สำหรับสถานะเป้า / Invoice End Date
+
+async function loadAllData(){
+  if(!USE_GOOGLE_SHEET){
+    return getMockData();
+  }
+  try{
+    const [rawRows, targetRawRows] = await Promise.all([
+      fetchSheetRaw(MAIN_TAB),
+      fetchSheetRaw(TARGET_TAB)
+    ]);
+    const headerRow = rawRows[1] || []; // ชื่อคอลัมน์จริงอยู่แถวที่ 2 (index 1)
+    const colModelPre = findColIndex(headerRow, "รุ่นเครื่องผสมสี", "รุ่นเครื่อง");
+    // กรองแถวที่ไม่มีข้อมูลจริง (แถวว่าง/แถวเกิน) ออก โดยใช้คอลัมน์ "รุ่นเครื่อง" เป็นตัวยืนยันว่าเป็นแถวข้อมูลจริง
+    const dataRows = rawRows.slice(2).filter(r => r && r.length && colModelPre >= 0 && r[colModelPre] !== null && r[colModelPre] !== "");
+
+    const colYear   = findColIndex(headerRow, "ปีที่ลง", "ปี");
+    const colModel  = findColIndex(headerRow, "รุ่นเครื่องผสมสี", "รุ่นเครื่อง");
+    const colReturn = findColIndex(headerRow, "คืนเครื่อง");
+    const colCust   = findColIndex(headerRow, "Customer");
+    const colCustName = findColIndex(headerRow, "NAME");
+
+    const total = dataRows.length;
+    let activeCount = 0, returnedCount = 0;
+    const yearCounts = {};
+    const modelCounts = {};
+    const customerSet = new Set();
+
+    dataRows.forEach(row => {
+      const returnVal = colReturn >= 0 ? (row[colReturn] || "").toString().trim() : "";
+      if(returnVal === ""){ activeCount++; } else { returnedCount++; }
+
+      const y = colYear >= 0 ? row[colYear] : null;
+      if(y !== null && y !== "" && y !== undefined){
+        const yNum = (typeof y === 'string' && y.includes('Date')) ? new Date(y).getFullYear() : y;
+        yearCounts[yNum] = (yearCounts[yNum] || 0) + 1;
+      }
+
+      const m = colModel >= 0 ? (row[colModel] || "").toString().trim() : "";
+      if(m){ modelCounts[m] = (modelCounts[m] || 0) + 1; }
+
+      const custKey = (colCust >= 0 && row[colCust]) ? row[colCust] : null;
+      if(custKey && returnVal === "") customerSet.add(custKey.toString().trim());
+    });
+
+    const modelColors = ["#3b6fe0","#1aa260","#e8973c","#d23b3b","#8a4fe0","#1fb6c9"];
+    const models = Object.entries(modelCounts)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([name,count],i) => ({ name, count, color: modelColors[i % modelColors.length] }));
+
+    const yearly = Object.entries(yearCounts)
+      .map(([year,count]) => ({ year: Number(year), count }))
+      .filter(y => !isNaN(y.year) && y.year > 1990 && y.year < 2100)
+      .sort((a,b)=>a.year-b.year);
+
+    // ----- เป้า / Invoice End Date จาก tab รายละเอียดร้านค้าทำเป้า -----
+    const tHeader = targetRawRows[1] || [];
+    const tData = targetRawRows.slice(2).filter(r => r && r.length);
+    const colTargetStatus = findColIndex(tHeader, "สถานะเป้า");
+    const colInvoiceEnd   = findColIndex(tHeader, "Invoice End Date", "Invoice End");
+
+    const today = new Date();
+    let statusDone=0, statusInProgress=0, statusReturned=0, statusFailed=0, statusBorrowed=0;
+    tData.forEach(row => {
+      const status = colTargetStatus >= 0 ? (row[colTargetStatus] || "").toString().trim() : "";
+      if(status.includes("จบเป้า")) statusDone++;
+      else if(status.includes("กำลังดำเนินการ")) statusInProgress++;
+      else if(status.includes("คืนเครื่อง")) statusReturned++;
+      else if(status.includes("ไม่ทำเป้า")) statusFailed++;
+      else if(status.includes("ยืมเครื่อง")) statusBorrowed++;
+    });
+
+    // นับ "กำลังทำเป้า" จาก Invoice End Date >= วันนี้ (ตามที่วางแผนไว้)
+    let targetActiveCount = 0;
+    tData.forEach(row => {
+      const endRaw = colInvoiceEnd >= 0 ? row[colInvoiceEnd] : null;
+      if(!endRaw) return;
+      let endDate = null;
+      const m = /Date\((\d+),(\d+),(\d+)/.exec(endRaw.toString());
+      if(m) endDate = new Date(Number(m[1]), Number(m[2]), Number(m[3]));
+      else endDate = new Date(endRaw);
+      if(endDate && !isNaN(endDate) && endDate >= today) targetActiveCount++;
+    });
+
+    const summary = {
+      total,
+      active: activeCount,
+      returned: returnedCount,
+      shops: customerSet.size,
+      lastUpdate: new Date().toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'}),
+      target: targetActiveCount,
+      statusDone, statusInProgress, statusReturned, statusFailed, statusBorrowed,
+      targetTotalGauge: statusDone + statusInProgress + statusReturned + statusFailed + statusBorrowed
+    };
+
+    return { summary, yearly, models };
+  }catch(err){
+    console.error("โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ ใช้ mock data แทน:", err);
+    return getMockData();
+  }
+}
+// ----- MOCK DATA (โครงสร้างเดียวกับที่จะได้จาก Google Sheet) -----
+function getMockData(){
+  return {
+    summary: {
+      total: 4782,
+      active: 4101,
+      target: 1388,
+      returned: 681,
+      shops: 3053,
+      lastUpdate: "20 เม.ย. 2569",
+      statusDone: 2662,
+      statusInProgress: 1388,
+      statusReturned: 681,
+      statusFailed: 27,
+      statusBorrowed: 24,
+      targetTotalGauge: 4782
+    },
+    yearly: [
+      {year:2001, count:5}, {year:2002, count:55}, {year:2003, count:90},
+      {year:2004, count:95}, {year:2005, count:65}, {year:2006, count:175},
+      {year:2007, count:255}, {year:2008, count:150}, {year:2009, count:165},
+      {year:2010, count:285}, {year:2011, count:200}, {year:2012, count:350},
+      {year:2013, count:185}, {year:2014, count:195}, {year:2015, count:225},
+      {year:2016, count:195}, {year:2017, count:240}, {year:2018, count:250},
+      {year:2019, count:170}, {year:2020, count:235}, {year:2021, count:255},
+      {year:2022, count:225}, {year:2023, count:235}, {year:2024, count:210},
+      {year:2025, count:265}, {year:2026, count:30}
+    ],
+    models: [
+      {name:"TM300", count:1256, color:"#3b6fe0"},
+      {name:"Shorter", count:1168, color:"#1aa260"},
+      {name:"X-PROTINT", count:1123, color:"#e8973c"},
+      {name:"X-SMART", count:406, color:"#d23b3b"}
+    ]
+  };
+}
+
+function fmt(n){ return Number(n).toLocaleString('th-TH'); }
+
+function renderKPIs(s){
+  document.getElementById('kpiTotal').textContent = fmt(s.total);
+  document.getElementById('kpiActive').textContent = fmt(s.active);
+  document.getElementById('kpiActivePct').textContent = `${(s.active/s.total*100).toFixed(1)}% ของทั้งหมด`;
+  document.getElementById('kpiTarget').textContent = fmt(s.target);
+  document.getElementById('kpiReturned').textContent = fmt(s.returned);
+  document.getElementById('kpiReturnedPct').textContent = `${(s.returned/s.total*100).toFixed(1)}% ของทั้งหมด`;
+  document.getElementById('kpiShops').textContent = fmt(s.shops);
+
+  document.getElementById('liveBadgeText').textContent = `Live Data — ${fmt(s.total)} เครื่อง`;
+  document.getElementById('sidebarFooter').innerHTML =
+    `อัปเดต: ${s.lastUpdate}<br>เครื่อง: ${fmt(s.total)} · ร้าน: ${fmt(s.shops)}`;
+}
+
+function renderYearlyChart(yearly){
+  const total = yearly.reduce((a,b)=>a+Number(b.count),0);
+  const minY = yearly[0].year, maxY = yearly[yearly.length-1].year;
+  document.getElementById('yearlySub').textContent = `ปี ${minY}–${maxY} รวม ${fmt(total)} เครื่อง`;
+
+  new Chart(document.getElementById('yearlyChart'), {
+    type:'bar',
+    data:{
+      labels: yearly.map(y=>y.year),
+      datasets:[{
+        data: yearly.map(y=>y.count),
+        backgroundColor:'#3b6fe0',
+        borderRadius:3,
+        maxBarThickness:28
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false}, tooltip:{enabled:true} },
+      scales:{
+        y:{ beginAtZero:true, grid:{color:'#eef0f6'} },
+        x:{ grid:{display:false} }
+      }
+    }
+  });
+}
+
+function renderModelBars(models){
+  const max = Math.max(...models.map(m=>m.count));
+  const container = document.getElementById('modelBars');
+  container.innerHTML = models.map(m => `
+    <div class="bar-row">
+      <div class="bar-label">${m.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(m.count/max*100).toFixed(1)}%; background:${m.color};"></div>
+      </div>
+      <div style="width:50px;text-align:right;color:var(--muted);">${fmt(m.count)}</div>
+    </div>
+  `).join('');
+}
+
+function renderTargetStatusBars(s){
+  const items = [
+    {label:"จบเป้า", count: s.statusDone || 0, color:"#1aa260"},
+    {label:"กำลังดำเนินการ", count: s.statusInProgress || 0, color:"#e8973c"},
+    {label:"คืนเครื่อง", count: s.statusReturned || 0, color:"#8a4fe0"},
+    {label:"ไม่ทำเป้า", count: s.statusFailed || 0, color:"#d23b3b"},
+    {label:"ยืมเครื่อง", count: s.statusBorrowed || 0, color:"#1fb6c9"}
+  ];
+  const max = Math.max(...items.map(i=>i.count), 1);
+  document.getElementById('targetStatusBars').innerHTML = items.map(it => `
+    <div class="bar-row">
+      <div class="bar-label">${it.label}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(it.count/max*100).toFixed(1)}%; background:${it.color};"></div>
+      </div>
+      <div style="width:50px;text-align:right;color:var(--muted);">${fmt(it.count)}</div>
+    </div>
+  `).join('');
+}
+function renderGauge(canvasId, value, max, valueLabel, colorMain, colorSecondary){
+  new Chart(document.getElementById(canvasId), {
+    type:'doughnut',
+    data:{
+      datasets:[{
+        data:[value, Math.max(max-value,0)],
+        backgroundColor:[colorMain, '#e7eaf2'],
+        borderWidth:0,
+        circumference:180,
+        rotation:270
+      }]
+    },
+    options:{
+      cutout:'72%',
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} }
+    },
+    plugins:[{
+      id:'centerText',
+      afterDraw(chart){
+        const {ctx, chartArea} = chart;
+        ctx.save();
+        ctx.font = '700 26px Segoe UI, sans-serif';
+        ctx.fillStyle = '#0f1c33';
+        ctx.textAlign = 'center';
+        ctx.fillText(valueLabel, (chartArea.left+chartArea.right)/2, chartArea.bottom - 4);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+(async function init(){
+  const data = await loadAllData();
+  renderKPIs(data.summary);
+  renderYearlyChart(data.yearly);
+  renderModelBars(data.models);
+  renderTargetStatusBars(data.summary);
+  renderGauge('targetGauge', data.summary.target, data.summary.targetTotalGauge || (data.summary.target * 2), fmt(data.summary.target), '#3b6fe0');
+
+  if(!USE_GOOGLE_SHEET){
+    document.getElementById('sourceNote').textContent =
+      'แสดงข้อมูลตัวอย่าง (mock data) — เปลี่ยน USE_GOOGLE_SHEET เป็น true และใส่ Sheet ID ในโค้ดเพื่อดึงข้อมูลจริงจาก Google Sheet';
+  } else {
+    document.getElementById('sourceNote').textContent =
+      'ข้อมูลทั้งหมดดึงจาก Google Sheet จริงแล้ว (เครื่องทั้งหมด/ใช้งาน/คืนเครื่อง/รุ่น/ปี/ร้านค้า จาก tab จำนวนเครื่องผสมสีทั้งหมด, สถานะเป้า/กำลังทำเป้า จาก tab รายละเอียดร้านค้าทำเป้า)';
+  }
+})();
+</script>
+</body>
+</html>
