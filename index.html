@@ -359,6 +359,13 @@ async function loadAllData(){
     const colCust   = findColIndex(headerRow, "Customer");
     const colCustName = findColIndex(headerRow, "NAME");
 
+    console.log("[DEBUG] MAIN_TAB header row:", headerRow);
+    console.log("[DEBUG] colYear idx:", colYear, "colModel idx:", colModel, "colReturn idx:", colReturn, "colCust idx:", colCust);
+    console.log("[DEBUG] sample row[0]:", dataRows[0]);
+    if(colReturn >= 0){
+      console.log("[DEBUG] sample คืนเครื่อง values (first 10 rows):", dataRows.slice(0,10).map(r=>r[colReturn]));
+    }
+
     const total = dataRows.length;
     let activeCount = 0, returnedCount = 0;
     const yearCounts = {};
@@ -397,6 +404,9 @@ async function loadAllData(){
     const tData = targetRawRows.slice(2).filter(r => r && r.length);
     const colTargetStatus = findColIndex(tHeader, "สถานะเป้า");
     const colInvoiceEnd   = findColIndex(tHeader, "Invoice End Date", "Invoice End");
+    console.log("[DEBUG] TARGET_TAB header row:", tHeader);
+    console.log("[DEBUG] colTargetStatus idx:", colTargetStatus, "colInvoiceEnd idx:", colInvoiceEnd);
+    console.log("[DEBUG] sample target row[0]:", tData[0]);
 
     const today = new Date();
     let statusDone=0, statusInProgress=0, statusReturned=0, statusFailed=0, statusBorrowed=0;
@@ -601,3 +611,4 @@ function renderGauge(canvasId, value, max, valueLabel, colorMain, colorSecondary
 </script>
 </body>
 </html>
+
