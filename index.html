@@ -22,19 +22,24 @@
     --border:#e7eaf2;
   }
   *{box-sizing:border-box;}
+  html{
+    height:auto;
+    min-height:100%;
+    overflow-x:hidden;
+  }
   body{
     margin:0;
     font-family:'Segoe UI', 'Sarabun', system-ui, -apple-system, sans-serif;
     background:var(--bg);
     color:var(--text);
-  }
-  html,body{
-    height:auto;
+    min-height:100%;
     overflow-x:hidden;
+    overflow-y:auto;
   }
   .layout{
     display:flex;
     align-items:flex-start;
+    min-height:100vh;
   }
   /* SIDEBAR */
   .sidebar{
@@ -574,5 +579,3 @@ function renderGauge(canvasId, value, max, valueLabel, colorMain, colorSecondary
 </script>
 </body>
 </html>
-
-
